@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load QRious library for QR code generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        /* Custom styles for a cleaner file input */
+        input[type="file"]::file-selector-button {
+            @apply bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg cursor-pointer transition-colors duration-200 hover:bg-indigo-700;
+        }
+
+        input[type="file"] {
+            @apply text-sm text-gray-500;
+        }
+
+        /* Custom scrollbar */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        textarea::-webkit-scrollbar-track {
+            @apply bg-gray-100 rounded-lg;
+        }
+
+        textarea::-webkit-scrollbar-thumb {
+            @apply bg-indigo-300 rounded-lg;
+        }
+
+        textarea::-webkit-scrollbar-thumb:hover {
+            @apply bg-indigo-400;
+        }
+    </style>
+    <script>
+        // Set Tailwind config to use Inter font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="font-sans bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main Card -->
+    <div class="w-full max-w-5xl bg-white rounded-xl shadow-2xl p-8 grid md:grid-cols-2 gap-10">
+
+        <!-- Left Column: Controls -->
+        <div class="flex flex-col space-y-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">QR Code Generator</h1>
+                <p class="text-gray-600 mt-1">Create your custom QR code with an optional logo.</p>
+            </div>
+
+            <!-- Data Input -->
+            <div class="space-y-2">
+                <label for="qr-text" class="text-sm font-semibold text-gray-700">Text or URL</label>
+                <textarea id="qr-text" rows="4"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                    placeholder="Enter your website, text, or data..."></textarea>
+            </div>
+
+            <!-- Logo Upload -->
+            <div class="space-y-2">
+                <label for="logo-upload" class="text-sm font-semibold text-gray-700">Optional Logo</label>
+                <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" class="w-full">
+            </div>
+
+            <!-- Logo Preview & Clear -->
+            <div id="logo-preview-container" class="hidden items-center space-x-3">
+                <img id="logo-preview" src="" alt="Logo Preview"
+                    class="w-16 h-16 object-contain rounded-md bg-gray-100 p-1 border">
+                <button id="clear-logo-btn"
+                    class="text-sm text-red-600 hover:text-red-800 font-medium transition-colors">Clear Logo</button>
+            </div>
+
+            <!-- Customization -->
+            <div class="space-y-4 pt-4 border-t">
+                <h3 class="text-lg font-semibold text-gray-800">Customize</h3>
+
+                <!-- Logo Size Slider -->
+                <div class="space-y-2">
+                    <label for="logo-size" class="text-sm font-semibold text-gray-700 flex justify-between">
+                        Logo Size
+                        <span id="logo-size-value" class="font-normal text-gray-500">40%</span>
+                    </label>
+                    <input id="logo-size" type="range" min="10" max="60" value="40"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                </div>
+
+                <!-- Color Pickers -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label for="fg-color" class="text-sm font-semibold text-gray-700">Foreground</label>
+                        <input id="fg-color" type="color" value="#000000"
+                            class="w-full h-10 p-1 border-none rounded-lg cursor-pointer">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="bg-color" class="text-sm font-semibold text-gray-700">Background</label>
+                        <input id="bg-color" type="color" value="#FFFFFF"
+                            class="w-full h-10 p-1 border-none rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="generate-btn"
+                class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-300 text-lg">
+                Generate QR Code
+            </button>
+        </div>
+
+        <!-- Right Column: Output -->
+        <div
+            class="bg-gray-50 rounded-lg p-6 flex flex-col items-center justify-center space-y-6 min-h-[400px] border border-gray-200">
+            <div id="qr-placeholder" class="text-center text-gray-500">
+                <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4v16m8-8H4"></path>
+                </svg>
+                <p class="mt-2">Your QR code will appear here</p>
+            </div>
+
+            <canvas id="qr-canvas" class="hidden rounded-lg shadow-inner"></canvas>
+
+            <button id="download-btn"
+                class="hidden w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300">
+                Download PNG
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Custom Message Modal (replaces alert) -->
+    <div id="message-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Notice</h3>
+            <p id="message-text" class="text-sm text-gray-600 mb-4"></p>
+            <button id="message-close-btn"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get DOM elements
+            const qrText = document.getElementById('qr-text');
+            const logoUpload = document.getElementById('logo-upload');
+            const logoPreviewContainer = document.getElementById('logo-preview-container');
+            const logoPreview = document.getElementById('logo-preview');
+            const clearLogoBtn = document.getElementById('clear-logo-btn');
+            const logoSizeSlider = document.getElementById('logo-size');
+            const logoSizeValue = document.getElementById('logo-size-value');
+            const fgColorPicker = document.getElementById('fg-color');
+            const bgColorPicker = document.getElementById('bg-color');
+            const generateBtn = document.getElementById('generate-btn');
+            const qrCanvas = document.getElementById('qr-canvas');
+            const qrPlaceholder = document.getElementById('qr-placeholder');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            // Message Modal elements
+            const messageModal = document.getElementById('message-modal');
+            const messageText = document.getElementById('message-text');
+            const messageCloseBtn = document.getElementById('message-close-btn');
+
+            let logoImage = null; // Will store the Image object for drawing
+
+            // --- Custom Message Function ---
+            function showMessage(message) {
+                messageText.textContent = message;
+                messageModal.classList.remove('hidden');
+            }
+
+            messageCloseBtn.addEventListener('click', () => {
+                messageModal.classList.add('hidden');
+            });
+
+            // --- Logo Handling ---
+            logoUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    // For the preview <img>
+                    logoPreview.src = dataUrl;
+                    logoPreviewContainer.classList.remove('hidden');
+                    logoPreviewContainer.classList.add('flex');
+
+                    // For drawing on the canvas, we need an actual Image object
+                    logoImage = new Image();
+                    logoImage.src = dataUrl;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            clearLogoBtn.addEventListener('click', () => {
+                logoImage = null;
+                logoUpload.value = null; // Clear the file input
+                logoPreview.src = '';
+                logoPreviewContainer.classList.add('hidden');
+                logoPreviewContainer.classList.remove('flex');
+            });
+
+            // --- Slider Value Display ---
+            logoSizeSlider.addEventListener('input', (e) => {
+                logoSizeValue.textContent = `${e.target.value}%`;
+            });
+
+            // --- Helper function to draw the logo ---
+            function drawLogo(backgroundColor) {
+                if (!logoImage || !logoImage.complete) return;
+
+                const ctx = qrCanvas.getContext('2d');
+                if (!ctx) return; // Make sure context is available
+
+                const canvasSize = 300; // Must match the size given to QRious
+                const logoPxSize = (parseInt(logoSizeSlider.value) / 100) * canvasSize;
+                const logoX = (canvasSize - logoPxSize) / 2;
+                const logoY = (canvasSize - logoPxSize) / 2;
+
+                // --- Removed the background fill square ---
+                // This will draw your logo (with its transparency)
+                // directly on top of the QR code's pattern.
+                //
+                // WARNING: This may make the QR code unscannable
+                // if the logo covers too much of the pattern.
+                // The "box" was there to create a "quiet zone"
+                // to ensure the code could be read.
+                
+                // ctx.fillStyle = backgroundColor;
+                // ctx.fillRect(logoX, logoY, logoPxSize, logoPxSize);
+
+                // For best "blending," use a logo image with a transparent background.
+                
+                // Draw the logo image on top of the QR pattern
+                ctx.drawImage(logoImage, logoX, logoY, logoPxSize, logoPxSize);
+            }
+
+            // --- QR Code Generation ---
+            generateBtn.addEventListener('click', () => {
+                const text = qrText.value;
+                if (!text) {
+                    showMessage('Please enter some text or a URL to generate a QR code.');
+                    return;
+                }
+
+                const fgColor = fgColorPicker.value;
+                const bgColor = bgColorPicker.value;
+                const canvasSize = 300;
+
+                // Prepare options for QRious - NO LOGO OPTIONS
+                const options = {
+                    element: qrCanvas,
+                    value: text,
+                    size: canvasSize,
+                    level: 'H', // High error correction, necessary for logos
+                    foreground: fgColor,
+                    background: bgColor,
+                };
+
+                // 1. Always generate the base QR code first
+                new QRious(options); 
+
+                // 2. Decide if/when to draw the logo
+                if (logoImage && logoImage.complete) {
+                    // Logo is loaded, draw it immediately
+                    drawLogo(bgColor);
+                    showOutput();
+                } else if (logoImage) {
+                    // Logo exists but isn't loaded, wait for it
+                    logoImage.onload = () => {
+                        drawLogo(bgColor);
+                        showOutput();
+                    };
+                    // In case it fails to load
+                    logoImage.onerror = () => {
+                        showMessage('Logo failed to load. Generating QR code without it.');
+                        logoImage = null; // Prevent future attempts
+                        showOutput();
+                    }
+                } else {
+                    // No logo, just show the QR code
+                    showOutput();
+                }
+            });
+            
+            function showOutput() {
+                // Show the canvas and download button
+                qrCanvas.classList.remove('hidden');
+                downloadBtn.classList.remove('hidden');
+                // Hide the placeholder
+                qrPlaceholder.classList.add('hidden');
+            }
+
+            // --- Download Function ---
+            downloadBtn.addEventListener('click', () => {
+                const dataUrl = qrCanvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = 'qr-code.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+        });
+    </script>
+</body>
+
+</html>
+
+
+
+
