@@ -1,403 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ashwin A | Quantum Dashboard</title>
+    <title>QR Code Generator</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Load QRious library for QR code generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-
-        :root {
-            --bg-color: #030303;
-            --accent-color: #6366f1;
+        /* Custom styles for a cleaner file input */
+        input[type="file"]::file-selector-button {
+            @apply bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg cursor-pointer transition-colors duration-200 hover:bg-indigo-700;
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: #cbd5e1;
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            cursor: crosshair;
+        input[type="file"] {
+            @apply text-sm text-gray-500;
         }
 
-        .font-mono { font-family: 'JetBrains+Mono', monospace; }
-
-        /* Custom Animations */
-        @keyframes boot-progress {
-            0% { width: 0%; }
-            50% { width: 40%; }
-            100% { width: 100%; }
+        /* Custom scrollbar */
+        textarea::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .animate-boot-progress {
-            animation: boot-progress 1.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        textarea::-webkit-scrollbar-track {
+            @apply bg-gray-100 rounded-lg;
         }
 
-        @keyframes music-bar {
-            0%, 100% { height: 4px; }
-            50% { height: 24px; }
+        textarea::-webkit-scrollbar-thumb {
+            @apply bg-indigo-300 rounded-lg;
         }
 
-        .animate-music-bar {
-            animation: music-bar 1s ease-in-out infinite;
+        textarea::-webkit-scrollbar-thumb:hover {
+            @apply bg-indigo-400;
         }
-
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        #mouse-glow {
-            background: radial-gradient(800px circle at var(--x) var(--y), rgba(99, 102, 241, 0.08), transparent 80%);
-        }
-
-        .perspective-container {
-            perspective: 1200px;
-        }
-
-        #main-dashboard {
-            transition: transform 0.3s ease-out;
-            transform-style: preserve-3d;
-        }
-
-        /* Utility */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
+    <script>
+        // Set Tailwind config to use Inter font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
 </head>
-<body class="selection:bg-indigo-500/30">
 
-    <!-- Boot Overlay -->
-    <div id="boot-overlay" class="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center font-mono transition-opacity duration-500">
-        <div class="w-64 space-y-2">
-            <div class="text-indigo-500 text-xs animate-pulse">> INITIALIZING_CORE_SYSTEMS...</div>
-            <div class="text-slate-500 text-[10px]">> LOADING_ODOO_17_RUNTIME...</div>
-            <div class="text-slate-500 text-[10px]">> DEPLOYING_OWL_COMPONENTS...</div>
-            <div class="text-slate-500 text-[10px]">> SYNCING_N8N_WORKFLOWS...</div>
-            <div class="h-1 bg-white/5 w-full rounded-full overflow-hidden mt-4">
-                <div class="h-full bg-indigo-500 animate-boot-progress"></div>
-            </div>
-        </div>
-    </div>
+<body class="font-sans bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <!-- Background Elements -->
-    <div class="fixed inset-0 pointer-events-none">
-        <div class="absolute top-1/4 left-1/4 w-[80%] h-[80%] bg-indigo-600/5 rounded-full blur-[150px] animate-pulse"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-[60%] h-[60%] bg-purple-600/5 rounded-full blur-[150px]" style="animation-delay: 2s;"></div>
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 40px 40px;"></div>
-    </div>
+    <!-- Main Card -->
+    <div class="w-full max-w-5xl bg-white rounded-xl shadow-2xl p-8 grid md:grid-cols-2 gap-10">
 
-    <!-- Mouse Glow -->
-    <div id="mouse-glow" class="pointer-events-none fixed inset-0 z-0 opacity-40 transition-opacity duration-500"></div>
-
-    <!-- Dashboard Container -->
-    <main class="min-h-screen flex flex-col items-center justify-center py-12 px-4 relative z-10 perspective-container">
-        <div id="main-dashboard" class="w-full max-w-3xl space-y-4">
-            
-            <!-- ROW 1: Identity & Time -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <!-- Profile Card -->
-                <div class="md:col-span-8 glass rounded-[2.5rem] p-8 relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 p-6 flex flex-col items-end gap-2">
-                        <div class="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
-                            <i data-lucide="shield-check" class="w-3 h-3 text-indigo-400"></i>
-                            <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Neural Link Active</span>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col md:flex-row items-center gap-8">
-                        <div class="relative">
-                            <div class="absolute -inset-2 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-[2rem] blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                            <!-- Profile Image with Fallback -->
-                            <img src="dp3.png" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" class="relative rounded-[1.8rem] w-32 h-32 object-cover border border-white/20 shadow-2xl" alt="Ashwin A">
-                            <div class="absolute -bottom-2 -right-2 p-2 bg-indigo-600 rounded-xl border-4 border-[#030303] shadow-lg">
-                                <i data-lucide="zap" class="w-4 h-4 text-white fill-current"></i>
-                            </div>
-                        </div>
-                        <div class="text-center md:text-left space-y-3">
-                            <div>
-                                <h1 class="text-4xl font-black text-white tracking-tighter leading-none">Ashwin A</h1>
-                                <p class="text-indigo-400 font-mono text-xs uppercase tracking-[0.3em] mt-2 font-bold">Odoo 17 Architect & Systems Designer</p>
-                            </div>
-                            <p class="text-slate-400 text-sm leading-relaxed max-w-sm">Pioneer in high-availability ERP architectures and immersive UI/UX systems.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Clock Card -->
-                <div class="md:col-span-4 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 flex flex-col justify-between backdrop-blur-xl group hover:border-white/20 transition-colors">
-                    <div class="flex justify-between items-start">
-                        <i data-lucide="clock" class="w-5 h-5 text-slate-500"></i>
-                        <i data-lucide="map-pin" class="w-4 h-4 text-slate-500"></i>
-                    </div>
-                    <div class="space-y-1">
-                        <div id="digital-clock" class="text-4xl font-black text-white font-mono tabular-nums tracking-tighter">00:00<span class="text-indigo-500 text-xl animate-pulse">.</span></div>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">India / GMT+5:30</p>
-                    </div>
-                    <div class="pt-4 border-t border-white/5 flex gap-2">
-                        <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-indigo-500/50 w-[85%]"></div></div>
-                        <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-purple-500/50 w-[60%]"></div></div>
-                    </div>
-                </div>
+        <!-- Left Column: Controls -->
+        <div class="flex flex-col space-y-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">QR Code Generator</h1>
+                <p class="text-gray-600 mt-1">Create your custom QR code with an optional logo.</p>
             </div>
 
-            <!-- ROW 2: Metrics & Portfolio -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Metrics Widget -->
-                <div class="bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-xl space-y-6">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Load</span>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-[10px] font-mono"><span class="text-slate-500">CPU_CORE</span><span id="cpu-val" class="text-emerald-400">12%</span></div>
-                            <div class="h-1 bg-white/5 rounded-full"><div id="cpu-bar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 12%;"></div></div>
-                        </div>
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-[10px] font-mono"><span class="text-slate-500">MEM_ALLOC</span><span id="ram-val" class="text-indigo-400">42%</span></div>
-                            <div class="h-1 bg-white/5 rounded-full"><div id="ram-bar" class="h-full bg-indigo-500 transition-all duration-1000" style="width: 42%;"></div></div>
-                        </div>
-                        <div class="flex justify-between items-end pt-2">
-                            <div class="text-[10px] text-slate-500 font-mono">UPTIME</div>
-                            <div id="uptime-val" class="text-xs font-mono text-white">00:00:00</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Main Portfolio Card -->
-                <a href="https://dev.kreaticainterior.in" target="_blank" class="md:col-span-2 bg-gradient-to-br from-indigo-600/10 to-transparent border border-indigo-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group">
-                    <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <i data-lucide="server" class="w-32 h-32 text-indigo-400"></i>
-                    </div>
-                    <div class="relative z-10 flex flex-col h-full justify-between">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="p-3 bg-indigo-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                                    <i data-lucide="database" class="w-6 h-6 text-white"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-xl font-black text-white">Main Portfolio</h3>
-                                    <p class="text-xs text-indigo-400 font-mono tracking-widest uppercase">dev.kreaticainterior.in</p>
-                                </div>
-                            </div>
-                            <i data-lucide="arrow-up-right" class="w-6 h-6 text-slate-600 group-hover:text-white transition-all"></i>
-                        </div>
-                        <div class="mt-4 grid grid-cols-2 gap-4">
-                            <div class="p-3 bg-white/5 rounded-2xl border border-white/5">
-                                <p class="text-[10px] text-slate-500 font-bold uppercase">Architecture</p>
-                                <p class="text-sm font-bold text-slate-200 mt-1">Odoo 17 / OWL</p>
-                            </div>
-                            <div class="p-3 bg-white/5 rounded-2xl border border-white/5">
-                                <p class="text-[10px] text-slate-500 font-bold uppercase">Automations</p>
-                                <p class="text-sm font-bold text-slate-200 mt-1 flex items-center gap-2">n8n Workflow <i data-lucide="workflow" class="w-3 h-3 text-indigo-400"></i></p>
-                            </div>
-                        </div>
-                    </div>
-                </a>
+            <!-- Data Input -->
+            <div class="space-y-2">
+                <label for="qr-text" class="text-sm font-semibold text-gray-700">Text or URL</label>
+                <textarea id="qr-text" rows="4"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                    placeholder="Enter your website, text, or data..."></textarea>
             </div>
 
-            <!-- ROW 3: Social Links with INLINE SVG (Guaranteed Visible) -->
-            <div id="social-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <!-- Github -->
-                <a href="https://github.com/Ashwin-A21" target="_blank" class="bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 transition-all hover:-translate-y-2 group hover:bg-slate-800 hover:border-transparent">
-                    <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-white/20 transition-colors">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.28 1.15-.28 2.35 0 3.5-.73 1.02-1.08 2.25-1 3.5 0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-[10px] font-black tracking-[0.2em] uppercase text-slate-500 group-hover:text-white/80">SOURCE</div>
-                        <div class="text-xs font-bold text-white mt-0.5">Ashwin-A21</div>
-                    </div>
-                </a>
-                <!-- Linkedin -->
-                <a href="https://www.linkedin.com/in/ashwinambar/" target="_blank" class="bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 transition-all hover:-translate-y-2 group hover:bg-blue-600 hover:border-transparent">
-                    <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-white/20 transition-colors">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-[10px] font-black tracking-[0.2em] uppercase text-slate-500 group-hover:text-white/80">NETWORK</div>
-                        <div class="text-xs font-bold text-white mt-0.5">ashwinambar</div>
-                    </div>
-                </a>
-                <!-- Whatsapp -->
-                <a href="https://wa.me/918113812257" target="_blank" class="bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 transition-all hover:-translate-y-2 group hover:bg-emerald-600 hover:border-transparent">
-                    <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-white/20 transition-colors">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-[10px] font-black tracking-[0.2em] uppercase text-slate-500 group-hover:text-white/80">WHATSAPP</div>
-                        <div class="text-xs font-bold text-white mt-0.5">+91 81138...</div>
-                    </div>
-                </a>
-                <!-- Email -->
-                <a href="mailto:ashwinambar2002@gmail.com" target="_blank" class="bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 transition-all hover:-translate-y-2 group hover:bg-red-600 hover:border-transparent">
-                    <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-white/20 transition-colors">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-[10px] font-black tracking-[0.2em] uppercase text-slate-500 group-hover:text-white/80">GMAIL</div>
-                        <div class="text-xs font-bold text-white mt-0.5">ashwinambar...</div>
-                    </div>
-                </a>
+            <!-- Logo Upload -->
+            <div class="space-y-2">
+                <label for="logo-upload" class="text-sm font-semibold text-gray-700">Optional Logo</label>
+                <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" class="w-full">
             </div>
 
-            <!-- ROW 4: Music & Tech Stack -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 flex items-center gap-6 group overflow-hidden relative">
-                    <div class="relative w-16 h-16 flex-shrink-0 group-hover:rotate-12 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-indigo-500/20 animate-ping rounded-full"></div>
-                        <div class="relative w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                            <i data-lucide="music" class="w-8 h-8 text-white"></i>
-                        </div>
-                    </div>
-                    <div class="flex-grow min-w-0">
-                        <p class="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
-                            <span class="w-1 h-1 bg-indigo-500 rounded-full animate-pulse"></span> Listening
-                        </p>
-                        <h4 class="text-white font-bold truncate">Dooron Dooron</h4>
-                        <p class="text-xs text-slate-500 truncate italic">Paresh Pahuja</p>
-                    </div>
-                    <div class="hidden md:flex gap-1 items-end h-6">
-                        <div class="w-1 bg-indigo-500/40 rounded-full animate-music-bar" style="height: 12px; animation-delay: 0.1s;"></div>
-                        <div class="w-1 bg-indigo-500/40 rounded-full animate-music-bar" style="height: 20px; animation-delay: 0.2s;"></div>
-                        <div class="w-1 bg-indigo-500/40 rounded-full animate-music-bar" style="height: 16px; animation-delay: 0.3s;"></div>
-                        <div class="w-1 bg-indigo-500/40 rounded-full animate-music-bar" style="height: 24px; animation-delay: 0.4s;"></div>
-                    </div>
-                </div>
-
-                <div class="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 flex flex-wrap items-center justify-center gap-3">
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">Odoo 17</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">Python</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">Node.js</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">n8n</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">HTML/CSS</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">JS</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">OWL</span>
-                    <span class="text-[9px] font-black bg-white/5 border border-white/5 px-3 py-1.5 rounded-full text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-colors cursor-default">Docker</span>
-                </div>
+            <!-- Logo Preview & Clear -->
+            <div id="logo-preview-container" class="hidden items-center space-x-3">
+                <img id="logo-preview" src="" alt="Logo Preview"
+                    class="w-16 h-16 object-contain rounded-md bg-gray-100 p-1 border">
+                <button id="clear-logo-btn"
+                    class="text-sm text-red-600 hover:text-red-800 font-medium transition-colors">Clear Logo</button>
             </div>
 
-            <!-- Actions -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <button id="copy-btn" class="flex items-center justify-center gap-3 p-6 bg-white text-black hover:bg-indigo-50 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-2xl shadow-indigo-500/20">
-                    <i data-lucide="copy" class="w-5 h-5"></i> <span>Copy Page Link</span>
-                </button>
+            <!-- Customization -->
+            <div class="space-y-4 pt-4 border-t">
+                <h3 class="text-lg font-semibold text-gray-800">Customize</h3>
+
+                <!-- Logo Size Slider -->
+                <div class="space-y-2">
+                    <label for="logo-size" class="text-sm font-semibold text-gray-700 flex justify-between">
+                        Logo Size
+                        <span id="logo-size-value" class="font-normal text-gray-500">40%</span>
+                    </label>
+                    <input id="logo-size" type="range" min="10" max="60" value="40"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                </div>
+
+                <!-- Color Pickers -->
                 <div class="grid grid-cols-2 gap-4">
-                    <button class="flex items-center justify-center p-6 bg-white/[0.03] border border-white/10 hover:bg-white/10 rounded-[2rem] transition-all active:scale-95 group">
-                        <i data-lucide="share-2" class="w-5 h-5 group-hover:text-indigo-400"></i>
-                    </button>
-                    <a href="mailto:ashwinambar2002@gmail.com" class="flex items-center justify-center p-6 bg-white/[0.03] border border-white/10 hover:bg-white/10 rounded-[2rem] transition-all active:scale-95 group">
-                        <i data-lucide="mail" class="w-5 h-5 group-hover:text-purple-400"></i>
-                    </a>
+                    <div class="space-y-2">
+                        <label for="fg-color" class="text-sm font-semibold text-gray-700">Foreground</label>
+                        <input id="fg-color" type="color" value="#000000"
+                            class="w-full h-10 p-1 border-none rounded-lg cursor-pointer">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="bg-color" class="text-sm font-semibold text-gray-700">Background</label>
+                        <input id="bg-color" type="color" value="#FFFFFF"
+                            class="w-full h-10 p-1 border-none rounded-lg cursor-pointer">
+                    </div>
                 </div>
             </div>
 
-            <footer class="pt-12 pb-8 flex flex-col items-center gap-4 opacity-50">
-                <div class="flex gap-4 text-[10px] font-mono uppercase tracking-[0.2em] text-slate-600">
-                    <span>ASHWIN_OS_V.5.0</span>
-                    <span>•</span>
-                    <span>CORE_ID_4829</span>
-                    <span>•</span>
-                    <span>STATUS_OK</span>
-                </div>
-                <div class="w-16 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            </footer>
+            <!-- Generate Button -->
+            <button id="generate-btn"
+                class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-300 text-lg">
+                Generate QR Code
+            </button>
         </div>
-    </main>
+
+        <!-- Right Column: Output -->
+        <div
+            class="bg-gray-50 rounded-lg p-6 flex flex-col items-center justify-center space-y-6 min-h-[400px] border border-gray-200">
+            <div id="qr-placeholder" class="text-center text-gray-500">
+                <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4v16m8-8H4"></path>
+                </svg>
+                <p class="mt-2">Your QR code will appear here</p>
+            </div>
+
+            <canvas id="qr-canvas" class="hidden rounded-lg shadow-inner"></canvas>
+
+            <button id="download-btn"
+                class="hidden w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300">
+                Download PNG
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Custom Message Modal (replaces alert) -->
+    <div id="message-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Notice</h3>
+            <p id="message-text" class="text-sm text-gray-600 mb-4"></p>
+            <button id="message-close-btn"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
 
     <script>
-        // System Constants
-        const startTime = Date.now();
-        const dashboard = document.getElementById('main-dashboard');
-        const glow = document.getElementById('mouse-glow');
-        const clockEl = document.getElementById('digital-clock');
-        
-        // Initialize Lucide Icons after DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            // Get DOM elements
+            const qrText = document.getElementById('qr-text');
+            const logoUpload = document.getElementById('logo-upload');
+            const logoPreviewContainer = document.getElementById('logo-preview-container');
+            const logoPreview = document.getElementById('logo-preview');
+            const clearLogoBtn = document.getElementById('clear-logo-btn');
+            const logoSizeSlider = document.getElementById('logo-size');
+            const logoSizeValue = document.getElementById('logo-size-value');
+            const fgColorPicker = document.getElementById('fg-color');
+            const bgColorPicker = document.getElementById('bg-color');
+            const generateBtn = document.getElementById('generate-btn');
+            const qrCanvas = document.getElementById('qr-canvas');
+            const qrPlaceholder = document.getElementById('qr-placeholder');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            // Message Modal elements
+            const messageModal = document.getElementById('message-modal');
+            const messageText = document.getElementById('message-text');
+            const messageCloseBtn = document.getElementById('message-close-btn');
+
+            let logoImage = null; // Will store the Image object for drawing
+
+            // --- Custom Message Function ---
+            function showMessage(message) {
+                messageText.textContent = message;
+                messageModal.classList.remove('hidden');
             }
-        });
 
-        // System State Simulation
-        function updateSystem() {
-            // Time update
-            const now = new Date();
-            clockEl.innerHTML = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}<span class="text-indigo-500 text-xl animate-pulse">.</span>`;
+            messageCloseBtn.addEventListener('click', () => {
+                messageModal.classList.add('hidden');
+            });
 
-            // Metrics randomization
-            const cpu = Math.floor(Math.random() * (25 - 8 + 1) + 8);
-            const ram = Math.floor(Math.random() * (45 - 40 + 1) + 40);
-            
-            document.getElementById('cpu-val').textContent = `${cpu}%`;
-            document.getElementById('cpu-bar').style.width = `${cpu}%`;
-            document.getElementById('ram-val').textContent = `${ram}%`;
-            document.getElementById('ram-bar').style.width = `${ram}%`;
+            // --- Logo Handling ---
+            logoUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
 
-            // Uptime calculation
-            const diff = Math.floor((Date.now() - startTime) / 1000);
-            const h = Math.floor(diff / 3600).toString().padStart(2, '0');
-            const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            document.getElementById('uptime-val').textContent = `${h}:${m}:${s}`;
-        }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    // For the preview <img>
+                    logoPreview.src = dataUrl;
+                    logoPreviewContainer.classList.remove('hidden');
+                    logoPreviewContainer.classList.add('flex');
 
-            setInterval(updateSystem, 1000);
-            updateSystem();
+                    // For drawing on the canvas, we need an actual Image object
+                    logoImage = new Image();
+                    logoImage.src = dataUrl;
+                };
+                reader.readAsDataURL(file);
+            });
 
-        // Tilt & Glow Interaction
-        window.addEventListener('mousemove', (e) => {
-            const x = e.clientX;
-            const y = e.clientY;
-            
-            // Mouse Glow
-            glow.style.setProperty('--x', `${x}px`);
-            glow.style.setProperty('--y', `${y}px`);
+            clearLogoBtn.addEventListener('click', () => {
+                logoImage = null;
+                logoUpload.value = null; // Clear the file input
+                logoPreview.src = '';
+                logoPreviewContainer.classList.add('hidden');
+                logoPreviewContainer.classList.remove('flex');
+            });
 
-            // Dashboard Tilt
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            const tiltX = (y - centerY) / centerY * -1.5;
-            const tiltY = (x - centerX) / centerX * 1.5;
+            // --- Slider Value Display ---
+            logoSizeSlider.addEventListener('input', (e) => {
+                logoSizeValue.textContent = `${e.target.value}%`;
+            });
 
-            dashboard.style.transform = `perspective(1200px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-        });
+            // --- Helper function to draw the logo ---
+            function drawLogo(backgroundColor) {
+                if (!logoImage || !logoImage.complete) return;
 
-        // Clipboard Action
-        const copyBtn = document.getElementById('copy-btn');
-        copyBtn.addEventListener('click', () => {
-            const el = document.createElement('textarea');
-            el.value = window.location.href;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            
-            const btnSpan = copyBtn.querySelector('span');
-            
-            btnSpan.textContent = 'Identity Copied';
-            btnSpan.classList.add('text-emerald-500');
-            
-            setTimeout(() => {
-                btnSpan.textContent = 'Copy Page Link';
-                btnSpan.classList.remove('text-emerald-500');
-            }, 2000);
-        });
+                const ctx = qrCanvas.getContext('2d');
+                if (!ctx) return; // Make sure context is available
 
-        // Boot Sequence Close
-        window.addEventListener('load', () => {
-            // Re-initialize icons just in case
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                const canvasSize = 300; // Must match the size given to QRious
+                const logoPxSize = (parseInt(logoSizeSlider.value) / 100) * canvasSize;
+                const logoX = (canvasSize - logoPxSize) / 2;
+                const logoY = (canvasSize - logoPxSize) / 2;
+
+                // --- Removed the background fill square ---
+                // This will draw your logo (with its transparency)
+                // directly on top of the QR code's pattern.
+                //
+                // WARNING: This may make the QR code unscannable
+                // if the logo covers too much of the pattern.
+                // The "box" was there to create a "quiet zone"
+                // to ensure the code could be read.
+                
+                // ctx.fillStyle = backgroundColor;
+                // ctx.fillRect(logoX, logoY, logoPxSize, logoPxSize);
+
+                // For best "blending," use a logo image with a transparent background.
+                
+                // Draw the logo image on top of the QR pattern
+                ctx.drawImage(logoImage, logoX, logoY, logoPxSize, logoPxSize);
             }
-            setTimeout(() => {
-                const overlay = document.getElementById('boot-overlay');
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.style.display = 'none', 500);
-            }, 1800);
+
+            // --- QR Code Generation ---
+            generateBtn.addEventListener('click', () => {
+                const text = qrText.value;
+                if (!text) {
+                    showMessage('Please enter some text or a URL to generate a QR code.');
+                    return;
+                }
+
+                const fgColor = fgColorPicker.value;
+                const bgColor = bgColorPicker.value;
+                const canvasSize = 300;
+
+                // Prepare options for QRious - NO LOGO OPTIONS
+                const options = {
+                    element: qrCanvas,
+                    value: text,
+                    size: canvasSize,
+                    level: 'H', // High error correction, necessary for logos
+                    foreground: fgColor,
+                    background: bgColor,
+                };
+
+                // 1. Always generate the base QR code first
+                new QRious(options); 
+
+                // 2. Decide if/when to draw the logo
+                if (logoImage && logoImage.complete) {
+                    // Logo is loaded, draw it immediately
+                    drawLogo(bgColor);
+                    showOutput();
+                } else if (logoImage) {
+                    // Logo exists but isn't loaded, wait for it
+                    logoImage.onload = () => {
+                        drawLogo(bgColor);
+                        showOutput();
+                    };
+                    // In case it fails to load
+                    logoImage.onerror = () => {
+                        showMessage('Logo failed to load. Generating QR code without it.');
+                        logoImage = null; // Prevent future attempts
+                        showOutput();
+                    }
+                } else {
+                    // No logo, just show the QR code
+                    showOutput();
+                }
+            });
+            
+            function showOutput() {
+                // Show the canvas and download button
+                qrCanvas.classList.remove('hidden');
+                downloadBtn.classList.remove('hidden');
+                // Hide the placeholder
+                qrPlaceholder.classList.add('hidden');
+            }
+
+            // --- Download Function ---
+            downloadBtn.addEventListener('click', () => {
+                const dataUrl = qrCanvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = 'qr-code.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
         });
     </script>
 </body>
+
 </html>
+
+
+
